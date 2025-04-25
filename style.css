@@ -2,7 +2,7 @@
   position: absolute;
   padding: 1%;
   font-family: "Roboto";
-  display: flex;
+  display: none;
   flex-direction: column;
   width: 900px;
   border: 2px solid black;
@@ -27,11 +27,23 @@
   gap: 15px;
 }
 
-.form__title {
-  font-size: 20px;
+.item__wrapper {
+  display: flex;
+  gap: 10px;
+  justify-content: start;
+  align-items: start;
 }
 
-.form__button {
+.item__wrapper input {
+  accent-color: #2196f3;
+}
+
+.masterIdPrompt {
+  display: flex;
+  width: 500px;
+}
+
+[class*="__button"] {
   background-color: #63c816;
   color: white;
   padding: 10px;
@@ -45,13 +57,10 @@
   cursor: pointer;
 }
 
-.item__wrapper {
-  display: flex;
-  gap: 10px;
-  justify-content: start;
-  align-items: start;
+[class*="__title"] {
+  font-size: 20px;
 }
 
-.item__wrapper input {
-  accent-color: #2196f3;
+.masterIdPrompt__input {
+  font-size: 20px;
 }
