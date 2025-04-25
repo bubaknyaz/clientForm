@@ -78,7 +78,6 @@ function createInputField(type, name, status, id) {
           render([...busyDates, choosedDay]);
         },
         width: "300px",
-        height: "400px",
         tdPadding: "12px",
       });
       break;
