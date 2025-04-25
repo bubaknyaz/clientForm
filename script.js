@@ -1,4 +1,11 @@
 const formWrapper = document.querySelector(".form__fields");
+const masterIdPromptButton = document.querySelector(".masterIdPrompt__button");
+masterIdPromptButton.addEventListener("click", async () => {
+  employeeId = Number(document.querySelector(".masterIdPrompt__input").value);
+  document.querySelector(".masterIdPrompt").style.display = "none";
+  document.querySelector(".formWrapper").style.display = "flex";
+  await main();
+});
 
 const supabaseUrl = "https://eqznnarpanrfzwzjgksq.supabase.co";
 const supabaseKey =
@@ -6,13 +13,10 @@ const supabaseKey =
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let choosedDay = null;
-const employeeId = 0;
+var employeeId;
 let employeeBusyDates = [];
-let employeeRecords = []; // для хранения existing records_array
+let employeeRecords = [];
 
-/**
- * Унифицированный «ключ» для даты — YYYY-MM-DD, без UTC-сдвигов
- */
 function getDateKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -20,9 +24,6 @@ function getDateKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-/**
- * Создаёт поле ввода (или контейнер календаря).
- */
 function createInputField(type, name, status, id) {
   const inputWrapper = document.createElement("div");
   inputWrapper.classList.add("input__wrapper");
@@ -48,12 +49,11 @@ function createInputField(type, name, status, id) {
       item.setAttribute("placeholder", "+71234567890");
       break;
     case "date":
-      // вместо <input> рендерим календарь
       item = document.createElement("div");
       createCalendar({
         container: item,
         initialDate: new Date(),
-        // изначально отмечаем сегодня + busy dates
+
         selectedDates: [
           new Date(),
           ...employeeBusyDates.map((s) => {
@@ -62,16 +62,15 @@ function createInputField(type, name, status, id) {
           }),
         ],
         onDateSelect({ render, date }) {
-          // выбрали рабочий день — date всегда объект Date
           const key = getDateKey(date);
-          // игнорируем выходные
+
           if ([0, 6].includes(date.getDay())) return;
           choosedDay = new Date(
             date.getFullYear(),
             date.getMonth(),
             date.getDate()
           );
-          // создаём массив дат объектов busy + choosed
+
           const busyDates = employeeBusyDates.map((s) => {
             const [y, m, d] = s.split("-");
             return new Date(+y, m - 1, +d);
@@ -83,7 +82,6 @@ function createInputField(type, name, status, id) {
         tdPadding: "12px",
       });
       break;
-    // можно добавить другие типы
   }
   item.dataset.fieldId = id;
 
@@ -93,8 +91,7 @@ function createInputField(type, name, status, id) {
   return inputWrapper;
 }
 
-(async () => {
-  // --- Загрузка полей формы ---
+async function main() {
   const { data: fields } = await supabase
     .from("Fields")
     .select("*")
@@ -102,7 +99,6 @@ function createInputField(type, name, status, id) {
 
   const register = document.querySelector(".form__button");
 
-  // --- Получаем занятые даты и записи сотрудника ---
   const { data: emp, error: errEmp } = await supabase
     .from("Employees")
     .select("busy_dates_array, records_array")
@@ -115,17 +111,15 @@ function createInputField(type, name, status, id) {
   employeeBusyDates = emp.busy_dates_array || [];
   employeeRecords = emp.records_array || [];
 
-  /* --- Обработчик клика "Записаться" --- */
   register.addEventListener("click", async () => {
     try {
-      // 1) Собираем данные из полей (text, tel, time)
       const inputs = [...document.querySelectorAll(".item__wrapper input")];
-      // Проверяем, что дата выбрана
+
       if (!choosedDay) {
-        alert("Пожалуйста, выберите дату."); // или иной UI-метод
+        alert("Пожалуйста, выберите дату.");
         return;
       }
-      // Проверяем дату не раньше сегодня
+
       const today = new Date();
       const selKey = getDateKey(choosedDay);
       const todayKey = getDateKey(today);
@@ -133,7 +127,7 @@ function createInputField(type, name, status, id) {
         alert("Дата не может быть раньше сегодняшней.");
         return;
       }
-      // Если сегодня, проверяем время
+
       const timeInput = inputs.find((i) => i.type === "time");
       if (selKey === todayKey && timeInput) {
         const [h, m] = timeInput.value.split(":").map(Number);
@@ -145,7 +139,7 @@ function createInputField(type, name, status, id) {
           return;
         }
       }
-      // Проверяем остальные поля на заполненность и валидность
+
       for (let input of inputs) {
         if (input.type !== "time" && input.value.trim() === "") {
           alert("Пожалуйста, заполните все поля.");
@@ -157,13 +151,11 @@ function createInputField(type, name, status, id) {
         }
       }
 
-      // Собираем record_info
       const recordInfo = {};
       for (let input of inputs) {
         recordInfo[input.dataset.fieldId] = input.value;
       }
 
-      // 2) Получаем текущий максимальный id заявки
       const { data: lastRecord } = await supabase
         .from("records")
         .select("id")
@@ -177,7 +169,6 @@ function createInputField(type, name, status, id) {
         return;
       }
 
-      // 3) Вставляем новую запись с новым id
       const { error: errInsert } = await supabase.from("records").insert([
         {
           id: newId,
@@ -191,7 +182,6 @@ function createInputField(type, name, status, id) {
         throw errInsert;
       }
 
-      // 4) Обновляем массивы в таблице Employees
       const updatedBusy = [...employeeBusyDates, selKey];
       const updatedRecords = [...employeeRecords, newId];
       const { error: errUpdate } = await supabase
@@ -208,10 +198,8 @@ function createInputField(type, name, status, id) {
 
       console.log(`Успешно создана заявка ID=${newId}`);
       register.textContent = "Успешно!";
-      // Здесь можно добавить сброс формы или сообщение об успехе
     } catch (e) {
       console.error(e);
-      // UI-уведомление об ошибке
     }
   });
 
@@ -226,4 +214,4 @@ function createInputField(type, name, status, id) {
     );
     formWrapper.append(inputField);
   }
-})();
+}
