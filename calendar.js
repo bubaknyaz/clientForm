@@ -9,7 +9,6 @@ function createCalendar({
   height = "auto",
   tdPadding = "12px",
 }) {
-  // единая функция-ключ для дат
   function getDateKey(date) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -22,7 +21,6 @@ function createCalendar({
     selected: new Set(selectedDates.map(getDateKey)),
   };
 
-  // ----- Инъекция стилей (один раз) -----
   const STYLE_ID = "calendar-styles";
   if (!document.getElementById(STYLE_ID)) {
     const style = document.createElement("style");
@@ -45,8 +43,8 @@ function createCalendar({
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       background: var(--calendar-bg);
       color: var(--calendar-text);
-      width: 100%;              /* теперь календарь растягивается в пределах контейнера */
-      box-sizing: border-box;   /* учитываем padding и границы */
+      width: 100%;              
+      box-sizing: border-box;   
   }
   .calendar-header {
       display: flex;
@@ -70,14 +68,14 @@ function createCalendar({
       background: rgba(255,255,255,0.1);
   }
   .calendar-table {
-      width: 100%;              /* таблица подстраивается по ширине контейнера */
+      width: 100%;              
       border-collapse: collapse;
-      /* table-layout: fixed; */ /* опционально: равномерная ширина ячеек */
+       
   }
   .calendar-table th,
   .calendar-table td {
       text-align: center;
-      /* padding: ${tdPadding}; */
+      
       max-width: ${tdPadding};
       padding: 1.5% 0;
       border: 1px solid #ddd;
@@ -113,11 +111,9 @@ function createCalendar({
     document.head.appendChild(style);
   }
 
-  // ----- Применение размеров -----
   container.style.width = width;
   container.style.height = height;
 
-  // ----- Вспомогательные функции -----
   const isWeekend = (date) => date.getDay() === 0 || date.getDay() === 6;
   const getMonthYearString = () =>
     state.currentDate.toLocaleString("ru-RU", {
@@ -155,7 +151,6 @@ function createCalendar({
     date.getMonth() === state.currentDate.getMonth();
   const isToday = (date) => date.toDateString() === new Date().toDateString();
 
-  // ----- Отметить все выходные как выбранные -----
   const markWeekends = () => {
     getWeeks()
       .flat()
@@ -164,13 +159,11 @@ function createCalendar({
       });
   };
 
-  // ----- Отрисовка -----
   const render = (selectedDays = state.selected) => {
-    // пересобираем Set ключей
     state.selected = new Set(
       [...selectedDays].map((d) => {
         if (d instanceof Date) return getDateKey(d);
-        return d; // если уже ключ
+        return d;
       })
     );
     markWeekends();
@@ -241,7 +234,6 @@ function createCalendar({
     row.appendChild(td);
   };
 
-  // Обработчик клика
   const handleDateClick = (date) => {
     const key = getDateKey(date);
     if (state.selected.has(key)) state.selected.delete(key);
@@ -255,10 +247,8 @@ function createCalendar({
     render();
   };
 
-  // Первый рендер
   render();
 
-  // Публичный API
   return {
     getSelectedDates: () =>
       Array.from(state.selected).map((k) => {
