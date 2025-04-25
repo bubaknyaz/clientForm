@@ -64,3 +64,58 @@
 .masterIdPrompt__input {
   font-size: 20px;
 }
+
+@media (max-width: 1200px) {
+  .formWrapper {
+    width: 80%;
+  }
+}
+
+@media (max-width: 900px) {
+  .formWrapper {
+    width: 90%;
+  }
+}
+
+@media (max-width: 600px) {
+  .formWrapper {
+    position: static;
+    transform: none;
+    top: auto;
+    left: auto;
+    margin: 20px auto;
+    width: 95%;
+    border: 1px solid black;
+  }
+
+  .form__fields {
+    max-height: none;
+  }
+
+  .masterIdPrompt {
+    position: static;
+    width: 95%;
+    margin: 20px auto;
+    transform: none;
+  }
+
+  [class*="__button"] {
+    width: auto;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .formWrapper {
+    padding: 5%;
+  }
+
+  [class*="__title"] {
+    font-size: 18px;
+  }
+
+  [class*="__button"] {
+    font-size: 16px;
+  }
+}
+
