@@ -1,11 +1,10 @@
 const formWrapper = document.querySelector(".form__fields");
 const masterIdPromptButton = document.querySelector(".masterIdPrompt__button");
-masterIdPromptButton.addEventListener("click", async () => {
-  employeeId = Number(document.querySelector(".masterIdPrompt__input").value);
-  document.querySelector(".masterIdPrompt").style.display = "none";
-  document.querySelector(".formWrapper").style.display = "flex";
+(async () => {
+  const url = new URL(window.location.href);
+  employeeId = Number(url.searchParams.get("masterId"));
   await main();
-});
+})();
 
 const supabaseUrl = "https://eqznnarpanrfzwzjgksq.supabase.co";
 const supabaseKey =
