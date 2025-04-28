@@ -13,9 +13,12 @@ const supabaseKey =
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let choosedDay = null;
+let choosedSlot = null;
 var employeeId;
 let employeeBusyDates = [];
 let employeeRecords = [];
+var employeeNotWeekends;
+let employeeSlots = {};
 
 function getDateKey(date) {
   const y = date.getFullYear();
@@ -40,9 +43,7 @@ function createInputField(type, name, status, id) {
     case "text":
       item.type = "text";
       break;
-    case "time":
-      item.type = "time";
-      break;
+
     case "tel":
       item.type = "tel";
       item.setAttribute("pattern", "\\+7\\d{10}");
@@ -53,7 +54,6 @@ function createInputField(type, name, status, id) {
       createCalendar({
         container: item,
         initialDate: new Date(),
-
         selectedDates: [
           new Date(),
           ...employeeBusyDates.map((s) => {
@@ -61,24 +61,18 @@ function createInputField(type, name, status, id) {
             return new Date(+y, m - 1, +d);
           }),
         ],
-        onDateSelect({ render, date }) {
-          const key = getDateKey(date);
-
-          if ([0, 6].includes(date.getDay())) return;
+        onDateSelect({ render, date, slot }) {
           choosedDay = new Date(
             date.getFullYear(),
             date.getMonth(),
             date.getDate()
           );
-
-          const busyDates = employeeBusyDates.map((s) => {
-            const [y, m, d] = s.split("-");
-            return new Date(+y, m - 1, +d);
-          });
-          render([...busyDates, choosedDay]);
+          choosedSlot = slot;
         },
         width: "300px",
         tdPadding: "12px",
+        allowedWeekends: employeeNotWeekends || [],
+        slots: employeeSlots,
       });
       break;
   }
@@ -100,7 +94,7 @@ async function main() {
 
   const { data: emp, error: errEmp } = await supabase
     .from("Employees")
-    .select("busy_dates_array, records_array")
+    .select("busy_dates_array, records_array, not_weekends, slots")
     .eq("id", employeeId)
     .single();
   if (errEmp) {
@@ -109,13 +103,15 @@ async function main() {
   }
   employeeBusyDates = emp.busy_dates_array || [];
   employeeRecords = emp.records_array || [];
+  employeeNotWeekends = emp.not_weekends || [];
+  employeeSlots = emp.slots || {};
 
   register.addEventListener("click", async () => {
     try {
       const inputs = [...document.querySelectorAll(".item__wrapper input")];
 
-      if (!choosedDay) {
-        alert("Пожалуйста, выберите дату.");
+      if (!choosedDay || !choosedSlot) {
+        alert("Пожалуйста, выберите дату и слот.");
         return;
       }
 
@@ -127,20 +123,8 @@ async function main() {
         return;
       }
 
-      const timeInput = inputs.find((i) => i.type === "time");
-      if (selKey === todayKey && timeInput) {
-        const [h, m] = timeInput.value.split(":").map(Number);
-        if (
-          h < today.getHours() ||
-          (h === today.getHours() && m < today.getMinutes())
-        ) {
-          alert("Время не может быть раньше текущего.");
-          return;
-        }
-      }
-
       for (let input of inputs) {
-        if (input.type !== "time" && input.value.trim() === "") {
+        if (input.value.trim() === "") {
           alert("Пожалуйста, заполните все поля.");
           return;
         }
@@ -152,8 +136,12 @@ async function main() {
 
       const recordInfo = {};
       for (let input of inputs) {
-        recordInfo[input.dataset.fieldId] = input.value;
+        if (input.dataset.fieldId) {
+          recordInfo[input.dataset.fieldId] = input.value;
+        }
       }
+
+      recordInfo["4"] = choosedSlot[0];
 
       const { data: lastRecord } = await supabase
         .from("records")
@@ -162,11 +150,6 @@ async function main() {
         .limit(1)
         .single();
       const newId = lastRecord && lastRecord.id ? lastRecord.id + 1 : 1;
-
-      if (employeeBusyDates.includes(selKey)) {
-        alert("Эта дата уже занята, выберите другую дату");
-        return;
-      }
 
       const { error: errInsert } = await supabase.from("records").insert([
         {
@@ -181,12 +164,21 @@ async function main() {
         throw errInsert;
       }
 
-      const updatedBusy = [...employeeBusyDates, selKey];
+      const slotsForDay = employeeSlots[selKey] || [];
+      const slotIndex = slotsForDay.findIndex(
+        (slot) => slot[0] === choosedSlot[0] && slot[1] === choosedSlot[1]
+      );
+      if (slotIndex !== -1) {
+        slotsForDay[slotIndex][2] = true;
+        slotsForDay[slotIndex][3] = newId;
+      }
+      const updatedSlots = { ...employeeSlots, [selKey]: slotsForDay };
+
       const updatedRecords = [...employeeRecords, newId];
       const { error: errUpdate } = await supabase
         .from("Employees")
         .update({
-          busy_dates_array: updatedBusy,
+          slots: updatedSlots,
           records_array: updatedRecords,
         })
         .eq("id", employeeId);
@@ -204,7 +196,7 @@ async function main() {
 
   /*----- Основной поток: рендерим поля формы -----*/
   for (const field of fields) {
-    if (!field.status) continue;
+    if (!field.status || field.type === "time") continue;
     const inputField = createInputField(
       field.type,
       field.name,
