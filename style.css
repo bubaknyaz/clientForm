@@ -2,7 +2,7 @@
   position: absolute;
   padding: 1%;
   font-family: "Roboto";
-  display: none;
+  display: flex;
   flex-direction: column;
   width: 900px;
   border: 2px solid black;
