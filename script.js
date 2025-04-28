@@ -1,6 +1,7 @@
 const formWrapper = document.querySelector(".form__fields");
 const masterIdPromptButton = document.querySelector(".masterIdPrompt__button");
 (async () => {
+  await new Promise((r) => setTimeout(r, 500));
   const url = new URL(window.location.href);
   employeeId = Number(url.searchParams.get("masterId"));
   await main();
