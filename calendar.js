@@ -8,6 +8,8 @@ function createCalendar({
   width = "600px",
   height = "auto",
   tdPadding = "12px",
+  allowedWeekends = [],
+  slots = {},
 }) {
   function getDateKey(date) {
     const y = date.getFullYear();
@@ -19,6 +21,8 @@ function createCalendar({
   const state = {
     currentDate: new Date(initialDate),
     selected: new Set(selectedDates.map(getDateKey)),
+    allowedWeekends: new Set(allowedWeekends),
+    slots: slots,
   };
 
   const STYLE_ID = "calendar-styles";
@@ -70,12 +74,10 @@ function createCalendar({
   .calendar-table {
       width: 100%;              
       border-collapse: collapse;
-       
   }
   .calendar-table th,
   .calendar-table td {
       text-align: center;
-      
       max-width: ${tdPadding};
       padding: 1.5% 0;
       border: 1px solid #ddd;
@@ -100,6 +102,17 @@ function createCalendar({
   }
   .calendar-day.other-month {
       color: var(--disabled-text);
+  }
+  .slots-container {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+  }
+  .slot-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
   }
   @media (max-width: 480px) {
       .calendar-table th,
@@ -155,7 +168,17 @@ function createCalendar({
     getWeeks()
       .flat()
       .forEach((date) => {
-        if (isWeekend(date)) state.selected.add(getDateKey(date));
+        const key = getDateKey(date);
+        if (isWeekend(date) && !state.allowedWeekends.has(key)) {
+          state.selected.add(key);
+        } else if (state.slots[key]) {
+          const allSlotsBusy = state.slots[key].every(
+            (slot) => slot[2] === true && slot[3] !== -1
+          );
+          if (allSlotsBusy) {
+            state.selected.add(key);
+          }
+        }
       });
   };
 
@@ -171,6 +194,9 @@ function createCalendar({
     calendar.className = "calendar-container";
     if (showHeader) calendar.appendChild(createHeader());
     calendar.appendChild(createTable());
+    const slotsContainer = document.createElement("div");
+    slotsContainer.className = "slots-container";
+    calendar.appendChild(slotsContainer);
     if (container.firstChild)
       container.replaceChild(calendar, container.firstChild);
     else container.appendChild(calendar);
@@ -190,10 +216,10 @@ function createCalendar({
     const nav = document.createElement("div");
     nav.className = "calendar-nav";
     const prev = document.createElement("button");
-    prev.innerHTML = "&lt;";
+    prev.innerHTML = "<";
     prev.addEventListener("click", () => navigate(-1));
     const next = document.createElement("button");
-    next.innerHTML = "&gt;";
+    next.innerHTML = ">";
     next.addEventListener("click", () => navigate(1));
     nav.append(prev, next);
     return nav;
@@ -229,17 +255,47 @@ function createCalendar({
     if (!isCurrentMonth(date)) td.classList.add("other-month");
     if (isToday(date)) td.classList.add("today");
     if (state.selected.has(getDateKey(date))) td.classList.add("selected");
-    if (!isWeekend(date))
-      td.addEventListener("click", () => handleDateClick(date));
+
+    const key = getDateKey(date);
+    const isAllowedWeekend = isWeekend(date) && state.allowedWeekends.has(key);
+    if (!isWeekend(date) || isAllowedWeekend) {
+      td.addEventListener("click", () => showSlots(date));
+    }
+
     row.appendChild(td);
   };
 
-  const handleDateClick = (date) => {
+  const showSlots = (date) => {
     const key = getDateKey(date);
-    if (state.selected.has(key)) state.selected.delete(key);
-    else state.selected.add(key);
-    if (onDateSelect) onDateSelect({ render, date, selected: state.selected });
-    render();
+    const slotsForDay = state.slots[key] || [];
+    const availableSlots = slotsForDay.filter(
+      (slot) => slot[2] === false && slot[3] === -1
+    );
+    if (availableSlots.length === 0) {
+      alert("Нет доступных слотов на этот день.");
+      return;
+    }
+    const slotsContainer = container.querySelector(".slots-container");
+    slotsContainer.innerHTML = "";
+    availableSlots.forEach((slot, index) => {
+      const slotItem = document.createElement("div");
+      slotItem.className = "slot-item";
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "slot";
+      radio.value = index;
+      radio.addEventListener("change", () => selectSlot(date, slot));
+      const label = document.createElement("label");
+      label.textContent = `${slot[0]} - ${slot[1]}`;
+      slotItem.append(radio, label);
+      slotsContainer.appendChild(slotItem);
+    });
+  };
+
+  const selectSlot = (date, slot) => {
+    if (onDateSelect) {
+      onDateSelect({ render, date, slot });
+    }
   };
 
   const navigate = (delta) => {
