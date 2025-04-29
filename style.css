@@ -21,7 +21,6 @@
 
 .form__fields {
   display: flex;
-  max-height: 80vh;
   gap: 15px;
   flex-wrap: wrap;
   justify-content: space-between;
