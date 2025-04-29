@@ -85,10 +85,16 @@ function createInputField(type, name, status, id) {
 }
 
 async function main() {
-  const { data: fields } = await supabase
+  let { data: fields } = await supabase
     .from("Fields")
     .select("*")
     .order("id", { ascending: true });
+
+  const empFieldsIds = (
+    await supabase.from("Employees").select("*").eq("id", employeeId)
+  ).data[0]["fields"];
+
+  fields = fields.filter((field) => empFieldsIds.includes(field.id));
 
   const register = document.querySelector(".form__button");
 
