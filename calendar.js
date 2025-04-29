@@ -127,7 +127,8 @@ function createCalendar({
   container.style.width = width;
   container.style.height = height;
 
-  const isWeekend = (date) => date.getDay() === 0 || date.getDay() === 6;
+  const isWeekend = (date) =>
+    false && (date.getDay() === 0 || date.getDay() === 6);
   const getMonthYearString = () =>
     state.currentDate.toLocaleString("ru-RU", {
       month: "long",
