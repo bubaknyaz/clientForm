@@ -116,9 +116,17 @@ async function main() {
     try {
       const inputs = [...document.querySelectorAll(".item__wrapper input")];
 
-      if (!choosedDay || !choosedSlot) {
+      if (!choosedDay) {
         alert("Пожалуйста, выберите дату и слот.");
         return;
+      }
+
+      if (!choosedSlot) {
+        const selKey = getDateKey(choosedDay);
+        const defaultSlot = ["12:00", "13:00", false, -1];
+        employeeSlots[selKey] = employeeSlots[selKey] || [];
+        employeeSlots[selKey].push(defaultSlot);
+        choosedSlot = defaultSlot;
       }
 
       const today = new Date();
@@ -178,6 +186,8 @@ async function main() {
         slotsForDay[slotIndex][2] = true;
         slotsForDay[slotIndex][3] = newId;
       }
+      const newFreeSlot = ["12:00", "13:00", false, -1];
+      slotsForDay.push(newFreeSlot);
       const updatedSlots = { ...employeeSlots, [selKey]: slotsForDay };
 
       const updatedRecords = [...employeeRecords, newId];
