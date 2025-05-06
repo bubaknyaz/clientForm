@@ -100,6 +100,10 @@ function createCalendar({
   .calendar-day.today {
       background: var(--today-bg);
   }
+  .calendar-day.currentDay {
+      background: var(--header-bg);
+      color: white;
+  }
   .calendar-day.other-month {
       color: var(--disabled-text);
   }
@@ -172,7 +176,7 @@ function createCalendar({
         const key = getDateKey(date);
         if (isWeekend(date) && !state.allowedWeekends.has(key)) {
           state.selected.add(key);
-        } else if (state.slots[key]) {
+        } else if (state.slots[key] && state.slots[key].length != 0) {
           const allSlotsBusy = state.slots[key].every(
             (slot) => slot[2] === true && slot[3] !== -1
           );
@@ -260,7 +264,13 @@ function createCalendar({
     const key = getDateKey(date);
     const isAllowedWeekend = isWeekend(date) && state.allowedWeekends.has(key);
     if (!isWeekend(date) || isAllowedWeekend) {
-      td.addEventListener("click", () => showSlots(date));
+      td.addEventListener("click", () => {
+        document.querySelectorAll(".calendar-day").forEach((day) => {
+          day.classList.remove("currentDay");
+        });
+        td.classList.add("currentDay");
+        showSlots(date);
+      });
     }
 
     row.appendChild(td);
@@ -272,8 +282,14 @@ function createCalendar({
     const availableSlots = slotsForDay.filter(
       (slot) => slot[2] === false && slot[3] === -1
     );
-    if (availableSlots.length === 0) {
-      alert("Нет доступных слотов на этот день.");
+    if (
+      availableSlots.length === 0 ||
+      (availableSlots.length == 1 && availableSlots[0][0] == "12:00")
+    ) {
+      if (onDateSelect) {
+        onDateSelect({ render, date, slot: null });
+      }
+
       return;
     }
     const slotsContainer = container.querySelector(".slots-container");
